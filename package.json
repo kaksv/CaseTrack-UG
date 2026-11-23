@@ -1,0 +1,21 @@
+{
+  "name": "casetrack-ug",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CaseTrack UG — Local Council Court case tracking MVP (Hack4Justice 2026)",
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace api",
+    "dev:web": "npm run dev --workspace web",
+    "build": "npm run build --workspace api && npm run build --workspace web",
+    "typecheck": "npm run typecheck --workspace api && npm run typecheck --workspace web",
+    "seed": "npm run seed --workspace api",
+    "assign": "npm run assign --workspace api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

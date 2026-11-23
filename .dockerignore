@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+.git
+.gitignore
+*.log
+.env
+**/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+README.md
+.DS_Store
