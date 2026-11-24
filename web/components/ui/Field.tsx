@@ -7,7 +7,7 @@ import type {
 import { cn } from '@/lib/cn';
 
 const fieldBase =
-  'block w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-[15px] text-ink-900 shadow-[inset_0_1px_1px_rgba(14,31,25,0.03)] transition placeholder:text-ink-300 hover:border-ink-300 focus:border-ink-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400';
+  'block w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-[15px] text-ink-900 shadow-[inset_0_1px_1px_rgba(42,0,58,0.03)] transition placeholder:text-ink-300 hover:border-ink-300 focus:border-ink-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400';
 
 interface FieldProps {
   label: string;

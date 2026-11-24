@@ -11,8 +11,8 @@ const tones: Record<Tone, { wrapper: string; icon: string; Icon: typeof Info }> 
     Icon: AlertCircle,
   },
   success: {
-    wrapper: 'border-emerald-200 bg-emerald-50/80 text-emerald-800',
-    icon: 'text-emerald-600',
+    wrapper: 'border-gold-300 bg-gold-50/80 text-ink-900',
+    icon: 'text-ink-700',
     Icon: CheckCircle2,
   },
   info: {

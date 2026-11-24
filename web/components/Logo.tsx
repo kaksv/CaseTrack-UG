@@ -37,37 +37,37 @@ export function Logo({
           width="40"
           height="40"
           rx="12"
-          fill={onDark ? '#c9a227' : '#0e1f19'}
+          fill={onDark ? '#E7BDD9' : '#2A003A'}
         />
         <path
           d="M20 8.5v23"
-          stroke={onDark ? '#0e1f19' : '#c9a227'}
+          stroke={onDark ? '#2A003A' : '#E7BDD9'}
           strokeWidth="1.8"
           strokeLinecap="round"
         />
         <path
           d="M12 12.5h16"
-          stroke={onDark ? '#0e1f19' : '#c9a227'}
+          stroke={onDark ? '#2A003A' : '#E7BDD9'}
           strokeWidth="1.8"
           strokeLinecap="round"
         />
         <path
           d="M12.5 12.5 9 20.5a3.9 3.9 0 0 0 7 0l-3.5-8Z"
           fill="none"
-          stroke={onDark ? '#0e1f19' : '#c9a227'}
+          stroke={onDark ? '#2A003A' : '#E7BDD9'}
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
         <path
           d="M27.5 12.5 24 20.5a3.9 3.9 0 0 0 7 0l-3.5-8Z"
           fill="none"
-          stroke={onDark ? '#0e1f19' : '#c9a227'}
+          stroke={onDark ? '#2A003A' : '#E7BDD9'}
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
         <path
           d="M14.5 31.5h11"
-          stroke={onDark ? '#0e1f19' : '#c9a227'}
+          stroke={onDark ? '#2A003A' : '#E7BDD9'}
           strokeWidth="1.8"
           strokeLinecap="round"
         />
