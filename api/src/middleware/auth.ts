@@ -26,15 +26,23 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 
     if (!payload.sub) throw unauthorized();
 
-    const user = await User.findById(payload.sub).select('name email role').lean();
+    const user = await User.findById(payload.sub)
+      .select('name email role institution isDemo')
+      .lean();
     if (!user) throw unauthorized('Account no longer exists');
+
 
     req.authUser = {
       id: String(user._id),
       name: user.name,
       email: user.email,
       role: user.role as UserRole,
+      institutionId: user.institution
+        ? String(user.institution)
+        : null,
+      isDemo: user.isDemo ?? false,
     };
+
     next();
   } catch (error) {
     next(error);
