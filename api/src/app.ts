@@ -9,6 +9,7 @@ import { casesRouter } from './routes/cases';
 import { notificationsRouter } from './routes/notifications';
 import { institutionsRouter } from './routes/institutions';
 import { healthRouter } from './routes/health';
+import { adminRouter } from './routes/admin';
 
 export const app = express();
 
@@ -69,6 +70,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/institutions', institutionsRouter);
 app.use('/api/cases', casesRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/admin', adminRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

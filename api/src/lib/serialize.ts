@@ -33,7 +33,10 @@ export function serializeUser(user: any): Record<string, unknown> {
   };
 }
 
-export function serializeInstitution(institution: any): Record<string, unknown> {
+
+export function serializeInstitution(
+  institution: any,
+): Record<string, unknown> {
   return {
     id: idOf(institution._id),
     name: institution.name,
@@ -41,9 +44,11 @@ export function serializeInstitution(institution: any): Record<string, unknown> 
     district: institution.district,
     subcounty: institution.subcounty,
     address: institution.address ?? null,
+    active: institution.active ?? true,
     isDemo: institution.isDemo ?? false,
   };
 }
+
 
 export function serializeCase(doc: any): Record<string, unknown> {
   const institution = asRecord(doc.institution);
