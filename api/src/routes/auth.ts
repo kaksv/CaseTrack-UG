@@ -57,6 +57,8 @@ authRouter.post(
       phone: phone || undefined,
       passwordHash,
       role: 'CITIZEN',
+      accountStatus: 'ACTIVE',
+      activatedAt: new Date(),
       isDemo: false,
     });
 
@@ -83,6 +85,13 @@ authRouter.post(
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw unauthorized('Invalid email or password');
+    if (
+      (user.accountStatus ?? 'ACTIVE') !== 'ACTIVE'
+    ) {
+      throw unauthorized(
+        'Your account is not active. Contact your administrator.',
+      );
+    }
 
     const token = signToken({ id: String(user._id), role: user.role });
     res.json({

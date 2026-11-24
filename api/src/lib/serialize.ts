@@ -24,6 +24,7 @@ export function serializeUser(user: any): Record<string, unknown> {
     email: user.email,
     phone: user.phone ?? null,
     role: user.role,
+    accountStatus: user.accountStatus ?? 'ACTIVE',
     isDemo: user.isDemo ?? false,
     institution: institution
       ? { id: idOf(institution._id), name: institution.name, district: institution.district }
@@ -61,12 +62,12 @@ export function serializeCase(doc: any): Record<string, unknown> {
     isDemo: doc.isDemo ?? false,
     institution: institution
       ? {
-          id: idOf(institution._id),
-          name: institution.name,
-          level: institution.level,
-          district: institution.district,
-          subcounty: institution.subcounty,
-        }
+        id: idOf(institution._id),
+        name: institution.name,
+        level: institution.level,
+        district: institution.district,
+        subcounty: institution.subcounty,
+      }
       : { id: idOf(institution) ?? '' },
     citizen: citizen
       ? { id: idOf(citizen._id), name: citizen.name }

@@ -1,6 +1,23 @@
 import type { Types } from 'mongoose';
 
-export type UserRole = 'CITIZEN' | 'OFFICER';
+export const USER_ROLES = [
+  'CITIZEN',
+  'OFFICER',
+  'COURT_ADMIN',
+  'SYSTEM_ADMIN',
+] as const;
+
+export type UserRole =
+  (typeof USER_ROLES)[number];
+
+export const ACCOUNT_STATUSES = [
+  'ACTIVE',
+  'PENDING_ACTIVATION',
+  'SUSPENDED',
+] as const;
+
+export type AccountStatus =
+  (typeof ACCOUNT_STATUSES)[number];
 
 
 export interface AuthUser {
