@@ -72,3 +72,89 @@ export const ACTIVE_STATUSES: CaseStatus[] = [
   'ADJOURNED',
   'DECISION_RECORDED',
 ];
+
+
+/* =========================================
+   HYBRID CASE REGISTRATION
+========================================= */
+
+export const CASE_REQUEST_STATUSES = [
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'NEEDS_INFORMATION',
+  'READY_FOR_REGISTRATION',
+  'REFERRED',
+  'DECLINED',
+  'REGISTERED',
+  'WITHDRAWN',
+] as const;
+
+export type CaseRequestStatus =
+  (typeof CASE_REQUEST_STATUSES)[number];
+
+export const REQUEST_STATUS_LABELS: Record<
+  CaseRequestStatus,
+  string
+> = {
+  SUBMITTED: 'Awaiting court review',
+  UNDER_REVIEW: 'Under review',
+  NEEDS_INFORMATION: 'Additional information required',
+  READY_FOR_REGISTRATION: 'Ready for registration',
+  REFERRED: 'Referred',
+  DECLINED: 'Request declined',
+  REGISTERED: 'Registered by court',
+  WITHDRAWN: 'Withdrawn',
+};
+
+export const REQUEST_ALLOWED_TRANSITIONS: Record<
+  CaseRequestStatus,
+  CaseRequestStatus[]
+> = {
+  SUBMITTED: [
+    'UNDER_REVIEW',
+    'WITHDRAWN',
+  ],
+
+  UNDER_REVIEW: [
+    'NEEDS_INFORMATION',
+    'READY_FOR_REGISTRATION',
+    'REFERRED',
+    'DECLINED',
+    'WITHDRAWN',
+  ],
+
+  NEEDS_INFORMATION: [
+    'SUBMITTED',
+    'WITHDRAWN',
+  ],
+
+  READY_FOR_REGISTRATION: [
+    'REGISTERED',
+    'UNDER_REVIEW',
+    'WITHDRAWN',
+  ],
+
+  REFERRED: [],
+  DECLINED: [],
+  REGISTERED: [],
+  WITHDRAWN: [],
+};
+
+export const REGISTRATION_SOURCES = [
+  'ONLINE_REQUEST',
+  'WALK_IN',
+  'EXISTING_CASE',
+  'LEGACY',
+] as const;
+
+export type RegistrationSource =
+  (typeof REGISTRATION_SOURCES)[number];
+
+export const VERIFICATION_STATUSES = [
+  'UNVERIFIED',
+  'COURT_VERIFIED',
+] as const;
+
+export type VerificationStatus =
+  (typeof VERIFICATION_STATUSES)[number];
+
