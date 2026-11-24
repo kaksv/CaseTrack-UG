@@ -11,6 +11,7 @@ import {
   Clock,
   FolderOpen,
   Inbox,
+  MessageCircle,
   MapPin,
   PlusCircle,
   Scale,
@@ -75,17 +76,23 @@ export default function DashboardPage() {
             : 'Follow every Local Council case you have registered, with hearing dates and updates in one place.'
         }
         actions={
-          isOfficer ? (
-            <Link href="/cases" className={buttonClasses('primary', 'md')}>
-              <FolderOpen className="h-4 w-4" aria-hidden="true" />
-              Assigned cases
+          <div className="flex flex-wrap gap-2">
+            <Link href="/legal-assistant" className={buttonClasses('primary', 'md')}>
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              Ask legal questions
             </Link>
-          ) : (
-            <Link href="/cases/new" className={buttonClasses('primary', 'md')}>
-              <PlusCircle className="h-4 w-4" aria-hidden="true" />
-              Register a case
-            </Link>
-          )
+            {isOfficer ? (
+              <Link href="/cases" className={buttonClasses('secondary', 'md')}>
+                <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                Assigned cases
+              </Link>
+            ) : (
+              <Link href="/cases/new" className={buttonClasses('secondary', 'md')}>
+                <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                Register a case
+              </Link>
+            )}
+          </div>
         }
       />
 

@@ -9,6 +9,7 @@ import { casesRouter } from './routes/cases';
 import { notificationsRouter } from './routes/notifications';
 import { institutionsRouter } from './routes/institutions';
 import { healthRouter } from './routes/health';
+import { assistantRouter } from './routes/assistant';
 
 export const app = express();
 
@@ -40,7 +41,7 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '8mb' }));
 
 if (env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
@@ -69,6 +70,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/institutions', institutionsRouter);
 app.use('/api/cases', casesRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/assistant', assistantRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

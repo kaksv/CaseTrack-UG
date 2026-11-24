@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Bell,
+  BookOpen,
   Building2,
   FolderOpen,
   LayoutDashboard,
@@ -64,6 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navItems: NavItem[] = [
     { href: '/dashboard', label: 'Overview', shortLabel: 'Home', Icon: LayoutDashboard },
+    { href: '/legal-assistant', label: 'Legal education', shortLabel: 'Legal help', Icon: BookOpen },
     {
       href: '/cases',
       label: user.role === 'OFFICER' ? 'Assigned cases' : 'My cases',

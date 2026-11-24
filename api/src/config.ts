@@ -9,6 +9,15 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(1),
+  HUGGINGFACE_API_KEY: z.string().optional(),
+  GEMMA_MODEL: z.string().default('google/gemma-3-4b-it'),
+  HUGGINGFACE_BASE_URL: z.string().default('https://router.huggingface.co/v1'),
+  ELEVENLABS_API_KEY: z.string().optional(),
+  ELEVENLABS_VOICE_ID: z.string().optional(),
+  ELEVENLABS_TTS_MODEL: z.string().default('eleven_multilingual_v2'),
+  ELEVENLABS_STT_MODEL: z.string().default('scribe_v2'),
+  LEGAL_ASSISTANT_ENABLED: z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
+  LEGAL_ASSISTANT_MAX_MESSAGE_LENGTH: z.coerce.number().int().min(100).max(10_000).default(3000),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -36,3 +36,10 @@ export const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 120,
 });
+
+/** Limits costly model, transcription and speech generation requests. */
+export const assistantLimiter = rateLimit({
+  ...shared,
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+});

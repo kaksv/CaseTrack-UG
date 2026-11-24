@@ -1,5 +1,12 @@
 export type Role = 'CITIZEN' | 'OFFICER';
 
+export type AssistantLanguage = 'en' | 'lg' | 'nyn' | 'luo' | 'teo' | 'sw';
+
+export interface AssistantMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface User {
   id: string;
   name: string;

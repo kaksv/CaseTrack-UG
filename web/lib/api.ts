@@ -9,6 +9,8 @@ import type {
   Institution,
   Paginated,
   User,
+  AssistantLanguage,
+  AssistantMessage,
 } from './types';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
@@ -210,6 +212,41 @@ export const api = {
     return request<{ data: { updated: number } }>('/api/notifications/read-all', {
       method: 'PATCH',
     });
+  },
+
+  legalChat(
+    message: string,
+    language: AssistantLanguage,
+    history: AssistantMessage[]
+  ): Promise<{ data: { answer: string; language: AssistantLanguage } }> {
+    return request<{ data: { answer: string; language: AssistantLanguage } }>('/api/assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, language, history }),
+    });
+  },
+
+  speechToText(
+    audioBase64: string,
+    mimeType: string,
+    language: AssistantLanguage
+  ): Promise<{ data: { text: string } }> {
+    return request<{ data: { text: string } }>('/api/assistant/speech-to-text', {
+      method: 'POST',
+      body: JSON.stringify({ audioBase64, mimeType, language }),
+    });
+  },
+
+  async textToSpeech(text: string, language: AssistantLanguage): Promise<Blob> {
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+    const response = await fetch(`${API_URL}/api/assistant/text-to-speech`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ text, language }),
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new ApiError('Read-aloud is unavailable. Please try again.', response.status);
+    return response.blob();
   },
 };
 
