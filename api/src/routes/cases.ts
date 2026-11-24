@@ -50,19 +50,34 @@ function citizenIdOf(value: unknown): string | null {
 }
 
 async function assertViewAccess(
-  caseDoc: { _id: unknown; citizen: unknown },
+  caseDoc: { _id: unknown; citizen?: unknown },
   user: AuthUser
 ): Promise<void> {
   if (user.role === 'CITIZEN') {
-    if (citizenIdOf(caseDoc.citizen) !== user.id) {
-      throw forbidden('You can only access cases you registered');
+    const citizenId = citizenIdOf(caseDoc.citizen);
+
+    if (!citizenId || citizenId !== user.id) {
+      throw forbidden('You are not authorized to access this case');
     }
+
     return;
   }
 
-  const access = await CaseAccess.exists({ case: caseDoc._id, user: user.id });
-  if (!access) throw forbidden('This case is not assigned to you');
+  if (user.role !== 'OFFICER') {
+    throw forbidden('You are not authorized to access this case');
+  }
+
+  const access = await CaseAccess.exists({
+    case: caseDoc._id,
+    user: user.id,
+  });
+
+  if (!access) {
+    throw forbidden('This case is not assigned to you');
+  }
 }
+
+
 
 async function scopeFilter(user: AuthUser): Promise<FilterQuery<ICase>> {
   if (user.role === 'CITIZEN') {
@@ -370,7 +385,7 @@ casesRouter.patch(
     }
 
     const citizenId = citizenIdOf(caseDoc.citizen);
-    if (!citizenId) throw notFound('Case owner not found');
+
 
     const now = new Date();
     const updated = await Case.findByIdAndUpdate(
@@ -396,16 +411,20 @@ casesRouter.patch(
       createdAt: now,
     });
 
-    try {
-      await notify({
-        userId: citizenId,
-        caseId: caseDoc._id,
-        title: `Case ${caseDoc.trackingId} updated`,
-        body: `The status is now “${STATUS_LABELS[status]}”.${note ? ` Officer note: ${note.slice(0, 400)}` : ''}`,
-      });
-    } catch (error) {
-      console.error('Notification write failed:', error instanceof Error ? error.message : 'unknown');
+
+    if (citizenId) {
+      try {
+        await notify({
+          userId: citizenId,
+          caseId: caseDoc._id,
+          title: `Case ${caseDoc.trackingId} updated`,
+          body: `The status is now “${STATUS_LABELS[status]}”.${note ? ` Officer note: ${note.slice(0, 400)}` : ''}`,
+        });
+      } catch (error) {
+        console.error('Notification write failed:', error instanceof Error ? error.message : 'unknown');
+      }
     }
+
 
     res.json({
       data: {
@@ -430,8 +449,6 @@ casesRouter.post(
     await assertViewAccess(caseDoc, user);
 
     const citizenId = citizenIdOf(caseDoc.citizen);
-    if (!citizenId) throw notFound('Case owner not found');
-
     const now = new Date();
 
     if (payload.type === 'HEARING_SCHEDULED') {
@@ -472,16 +489,20 @@ casesRouter.post(
         createdAt: now,
       });
 
-      try {
-        await notify({
-          userId: citizenId,
-          caseId: caseDoc._id,
-          title: `Hearing scheduled — ${caseDoc.trackingId}`,
-          body: `A hearing has been scheduled for ${formatKampala(payload.hearingDate)}.`,
-        });
-      } catch (error) {
-        console.error('Notification write failed:', error instanceof Error ? error.message : 'unknown');
+
+      if (citizenId) {
+        try {
+          await notify({
+            userId: citizenId,
+            caseId: caseDoc._id,
+            title: `Hearing scheduled — ${caseDoc.trackingId}`,
+            body: `A hearing has been scheduled for ${formatKampala(payload.hearingDate)}.`,
+          });
+        } catch (error) {
+          console.error('Notification write failed:', error instanceof Error ? error.message : 'unknown');
+        }
       }
+
 
       res.status(201).json({
         data: {
@@ -509,16 +530,20 @@ casesRouter.post(
       createdAt: now,
     });
 
-    try {
-      await notify({
-        userId: citizenId,
-        caseId: caseDoc._id,
-        title: `${isMilestone ? 'Progress update' : 'Officer note'} — ${caseDoc.trackingId}`,
-        body: payload.description || title,
-      });
-    } catch (error) {
-      console.error('Notification write failed:', error instanceof Error ? error.message : 'unknown');
+
+    if (citizenId) {
+      try {
+        await notify({
+          userId: citizenId,
+          caseId: caseDoc._id,
+          title: `${isMilestone ? 'Progress update' : 'Officer note'} — ${caseDoc.trackingId}`,
+          body: payload.description || title,
+        });
+      } catch (error) {
+        console.error('Notification write failed:', error instanceof Error ? error.message : 'unknown');
+      }
     }
+
 
     const refreshed = await Case.findById(caseDoc._id).populate(CASE_POPULATE).lean();
     res.status(201).json({
