@@ -18,6 +18,12 @@ const envSchema = z.object({
   ELEVENLABS_STT_MODEL: z.string().default('scribe_v2'),
   LEGAL_ASSISTANT_ENABLED: z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
   LEGAL_ASSISTANT_MAX_MESSAGE_LENGTH: z.coerce.number().int().min(100).max(10_000).default(3000),
+  LLM_PROVIDER: z.enum(['ollama', 'huggingface']).default('huggingface'),
+  OLLAMA_BASE_URL: z.string().default('http://127.0.0.1:11434'),
+  OLLAMA_MODEL: z.string().default('gemma3:4b'),
+  STT_PROVIDER: z.enum(['whisper', 'elevenlabs']).default('elevenlabs'),
+  WHISPER_MODEL: z.string().optional(),
+  TTS_PROVIDER: z.enum(['browser', 'elevenlabs']).default('elevenlabs'),
 });
 
 const parsed = envSchema.safeParse(process.env);

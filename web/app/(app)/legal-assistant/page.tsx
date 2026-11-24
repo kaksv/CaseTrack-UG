@@ -119,12 +119,19 @@ export default function LegalAssistantPage() {
   async function readAloud(text: string) {
     setError(null);
     try {
-      const blob = await api.textToSpeech(text, language);
-      const url = URL.createObjectURL(blob);
-      audioRef.current?.pause();
-      audioRef.current = new Audio(url);
-      await audioRef.current.play();
-      audioRef.current.onended = () => URL.revokeObjectURL(url);
+      if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        throw new Error('Read-aloud is not supported by this browser.');
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === 'lg' ? 'lg-UG'
+        : language === 'nyn' ? 'nyn-UG'
+        : language === 'luo' ? 'luo-UG'
+        : language === 'teo' ? 'teo-UG'
+        : language === 'sw' ? 'sw-KE'
+        : 'en-UG';
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
     } catch (err) {
       setError(errorMessage(err));
     }

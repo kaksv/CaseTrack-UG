@@ -15,6 +15,11 @@ CaseTrack UG is a mobile-first civic-tech prototype built for **Hack4Justice 202
 - [Tech stack](#tech-stack)
 - [Repository layout](#repository-layout)
 - [Local development](#local-development)
+- [Legal education assistant setup](#legal-education-assistant-setup)
+  - [Option A: fully local and free](#option-a-fully-local-and-free)
+  - [Option B: hosted providers](#option-b-hosted-providers)
+  - [Mixed provider setup](#mixed-provider-setup)
+  - [Provider verification](#provider-verification)
 - [Environment variables](#environment-variables)
 - [Useful scripts](#useful-scripts)
 - [API overview](#api-overview)
@@ -70,6 +75,7 @@ Both accounts are created by the seed script and clearly marked **DEMO** in the 
 | Frontend | Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 3.4, lucide-react |
 | Backend | Node.js 20+, Express 4, TypeScript, Mongoose 8, Zod, bcryptjs, jsonwebtoken |
 | Database | MongoDB (Atlas in production, local MongoDB for development) |
+| Legal assistant | Ollama/Gemma locally or Hugging Face; Whisper locally or ElevenLabs; browser speech or ElevenLabs |
 | Fonts | Inter + Fraunces via `next/font/google` |
 | Infra | Docker Compose for the API, Caddy for HTTPS, Vercel for the frontend |
 
@@ -93,7 +99,7 @@ casetrack-ug/
 │   │   ├── app.ts               # Express app, CORS, helmet, routes
 │   │   ├── server.ts            # HTTP server bootstrap
 │   │   ├── models/              # User, Institution, Case, CaseEvent, CaseAccess, Notification
-│   │   ├── routes/              # auth, institutions, cases, notifications, health
+│   │   ├── routes/              # auth, institutions, cases, notifications, assistant, health
 │   │   ├── middleware/          # auth guard, RBAC, validation, rate limit, errors
 │   │   ├── lib/                 # serializers, ids, pagination
 │   │   ├── scripts/assign.ts    # Assign an officer to cases
@@ -209,6 +215,333 @@ Then open <http://localhost:3000> and use the demo buttons on the sign-in page.
 
 ---
 
+## Legal education assistant setup
+
+The signed-in **Legal education** page uses a configurable model and speech stack:
+
+- Text chat through Gemma on Ollama or a Hugging Face-hosted Gemma model.
+- Speech-to-text through local Whisper.cpp or ElevenLabs.
+- Read-aloud through the browser's built-in speech synthesizer or ElevenLabs.
+
+No provider key is required for the fully local setup. API keys and provider credentials must remain in `api/.env` and must never be added to `NEXT_PUBLIC_*` frontend variables.
+
+### What is free?
+
+| Component | Fully local/free choice | Hosted choice |
+| --- | --- | --- |
+| Chat model | Ollama + Gemma 3 | Hugging Face Inference Providers |
+| Speech-to-text | Whisper.cpp | ElevenLabs Scribe |
+| Read-aloud | Browser Speech Synthesis or macOS `say` | ElevenLabs text-to-speech |
+
+The listed hosted providers can have free tiers or trials, but they are not guaranteed to remain free. Check the provider's current quotas and licensing before deployment. Local models can also use disk space and CPU/GPU resources.
+
+The assistant is general legal education. It must not be presented as legal advice or as an official Ministry of Justice/UG Judiciary service.
+
+### Option A: fully local and free
+
+This is the recommended starting setup for local development and a privacy-focused demo.
+
+**Recommended local stack**
+
+- LLM: Ollama + `gemma3:4b`
+- Speech-to-text: Whisper.cpp `small`
+- Read-aloud: Browser Speech Synthesis
+- Storage: external disk for model weights
+
+#### 1. Put Ollama models on the external disk
+
+Create directories on the external volume:
+
+```bash
+mkdir -p '/Volumes/SOMA-DISK/casetrack-ai/ollama'
+mkdir -p '/Volumes/SOMA-DISK/casetrack-ai/whisper'
+```
+
+Stop and restart Ollama with `OLLAMA_MODELS` set to the external directory:
+
+```bash
+launchctl setenv OLLAMA_MODELS '/Volumes/SOMA-DISK/casetrack-ai/ollama'
+```
+
+Quit Ollama normally, if it is running, then reopen the Ollama application. Do not kill all
+Ollama processes if another user or process relies on it.
+
+Pull and test Gemma:
+
+```bash
+ollama pull gemma3:4b
+ollama run gemma3:4b
+```
+
+Verify the local API:
+
+```bash
+curl http://127.0.0.1:11434/api/version
+curl http://127.0.0.1:11434/api/tags
+```
+
+Example `/api/chat` request:
+
+```bash
+curl http://127.0.0.1:11434/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "gemma3:4b",
+    "stream": false,
+    "messages": [
+      {"role": "system", "content": "Answer in simple English."},
+      {"role": "user", "content": "What is a Local Council court?"}
+    ]
+  }'
+```
+
+Alternative local chat models include:
+
+- `gemma3:1b` — smallest, lowest resource use, weaker legal reasoning.
+- `gemma3:4b` — recommended balance for a 16 GB Mac.
+- `gemma3:12b` — better quality, but roughly 8 GB and usually slower.
+- `qwen3:4b` — strong multilingual alternative.
+- `qwen3:8b` — larger alternative with more memory and quality requirements.
+
+Run the alternative with Ollama, for example:
+
+```bash
+ollama pull qwen3:4b
+```
+
+Then set `OLLAMA_MODEL=qwen3:4b`.
+
+#### 2. Install and configure local Whisper.cpp
+
+Whisper.cpp is a local speech-to-text alternative with no API key.
+
+```bash
+git clone --depth 1 https://github.com/ggml-org/whisper.cpp \
+  '/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp'
+
+cd '/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp'
+cmake -B build -DGGML_METAL=ON
+cmake --build build -j
+sh ./models/download-ggml-model.sh small
+```
+
+The model should then exist at:
+
+```text
+/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/models/ggml-small.bin
+```
+
+The CLI should exist at:
+
+```text
+/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/build/bin/whisper-cli
+```
+
+Test it with an audio file:
+
+```bash
+'/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/build/bin/whisper-cli' \
+  -m '/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/models/ggml-small.bin' \
+  -f /path/to/recording.wav \
+  -l en \
+  -nt -np
+```
+
+Whisper alternatives include:
+
+- `tiny` or `base` — faster and less accurate.
+- `small` — recommended starting balance.
+- `medium` or `large-v3` — slower and more storage-heavy, but potentially more accurate.
+- OpenAI's Python Whisper package or faster-whisper — higher-level Python alternatives that require their own setup and model storage.
+
+Language accuracy varies. Whisper may support English and Swahili more reliably than Luganda, Runyankole, Luo or Ateso. Always test real Ugandan recordings before relying on a language.
+
+FFmpeg is used to convert browser recordings to a 16 kHz, mono WAV before Whisper runs:
+
+```bash
+brew install ffmpeg
+ffmpeg -version
+```
+
+#### 3. Use browser or macOS read-aloud
+
+The browser implementation uses `window.speechSynthesis`; no backend key is required. If the browser has no suitable voice, macOS voice packs can be reviewed with:
+
+```bash
+say -v '?'
+```
+
+Test an available voice:
+
+```bash
+say -v Samantha 'Welcome to CaseTrack Uganda.'
+```
+
+Browser voices vary by macOS, browser and installed voice packs. Ugandan local-language voices may not be available. Piper, Kokoro-ONNX and trained local voices are alternatives, but they need additional model selection and licensing checks.
+
+#### 4. Configure `api/.env`
+
+Use these values for the complete local setup:
+
+```env
+LEGAL_ASSISTANT_ENABLED=true
+LEGAL_ASSISTANT_MAX_MESSAGE_LENGTH=3000
+
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=gemma3:4b
+
+STT_PROVIDER=whisper
+WHISPER_MODEL=/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/models/ggml-small.bin
+
+TTS_PROVIDER=browser
+```
+
+The API keys for Hugging Face and ElevenLabs can remain blank or can be omitted in this mode.
+
+### Option B: hosted providers
+
+Hosted providers can reduce local RAM/disk use and may provide better voice quality, but require network access and account or usage controls.
+
+#### Hugging Face chat setup
+
+1. Create or sign in to a Hugging Face account.
+2. Open the Gemma model page and accept Google's usage/license conditions.
+3. Open <https://huggingface.co/settings/tokens/new>.
+4. Create a fine-grained token with **Make calls to Inference Providers** permission.
+5. Copy the token once and store it only in `api/.env`.
+6. Configure the API:
+
+```env
+LEGAL_ASSISTANT_ENABLED=true
+LLM_PROVIDER=huggingface
+HUGGINGFACE_API_KEY=hf_replace_me
+HUGGINGFACE_BASE_URL=https://router.huggingface.co/v1
+GEMMA_MODEL=google/gemma-3-4b-it
+```
+
+Test provider access directly:
+
+```bash
+curl https://router.huggingface.co/v1/chat/completions \
+  -H "Authorization: Bearer hf_replace_me" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model":"google/gemma-3-4b-it",
+    "messages":[{"role":"user","content":"Explain a Local Council court in simple English."}]
+  }'
+```
+
+`HUGGINGFACE_API_KEY` must have inference-provider permission, and a gated Gemma model may require license acceptance before its provider becomes usable. Monthly paid credits or an account plan may be required.
+
+Alternative hosted chat providers can use the existing Hugging Face OpenAI-compatible router format or an equivalent adapter. Keep provider tokens server-side.
+
+#### ElevenLabs speech setup
+
+1. Create or sign in to an ElevenLabs account.
+2. Open <https://elevenlabs.io/app/developers/api-keys>.
+3. Create an API key and enable the required speech permissions.
+4. Choose a voice available to that account/API tier and copy its voice ID.
+5. Add the credentials only to `api/.env`:
+
+```env
+ELEVENLABS_API_KEY=replace_me
+ELEVENLABS_VOICE_ID=replace_me
+ELEVENLABS_TTS_MODEL=eleven_multilingual_v2
+ELEVENLABS_STT_MODEL=scribe_v2
+```
+
+Voice and model names can change. Treat `ELEVENLABS_VOICE_ID` as account-specific.
+
+Use ElevenLabs for both speech features:
+
+```env
+STT_PROVIDER=elevenlabs
+TTS_PROVIDER=elevenlabs
+```
+
+Use ElevenLabs transcription only and keep browser read-aloud:
+
+```env
+STT_PROVIDER=elevenlabs
+TTS_PROVIDER=browser
+```
+
+Use local Whisper and ElevenLabs read-aloud:
+
+```env
+STT_PROVIDER=whisper
+WHISPER_MODEL=/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/models/ggml-small.bin
+TTS_PROVIDER=elevenlabs
+```
+
+ElevenLabs Free-tier availability and API permissions can change. It may limit a voice, text-to-speech, speech-to-text or commercial use by plan. Confirm current limits in the ElevenLabs account before relying on them.
+
+### Mixed provider setup
+
+Providers can be combined independently:
+
+| Goal | Chat | STT | TTS |
+| --- | --- | --- | --- |
+| Fully free and local | Ollama/Gemma | Whisper.cpp | Browser |
+| Local chat, hosted voice | Ollama/Gemma | ElevenLabs | ElevenLabs |
+| Hosted chat, local voice | Hugging Face/Gemma | Whisper.cpp | Browser |
+| Hosted chat and hosted voice | Hugging Face/Gemma | ElevenLabs | ElevenLabs |
+
+Restart the API after changing provider variables:
+
+```bash
+npm run dev:api
+```
+
+### Provider verification
+
+Verify Ollama:
+
+```bash
+curl http://127.0.0.1:11434/api/version
+ollama list
+```
+
+Verify Whisper directly:
+
+```bash
+'/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/build/bin/whisper-cli' \
+  -m '/Volumes/SOMA-DISK/casetrack-ai/whisper/whisper.cpp/models/ggml-small.bin' \
+  -f /path/to/recording.wav \
+  -l en \
+  -nt -np
+```
+
+Verify the existing app servers:
+
+```bash
+curl http://localhost:4000/api/health
+curl --head http://localhost:3000
+npm run typecheck
+```
+
+Then sign in and open:
+
+```text
+http://localhost:3000/legal-assistant
+```
+
+Test in this order:
+
+1. Choose a language.
+2. Send a short general-law question.
+3. Confirm that the answer comes back and has a disclaimer.
+4. Select **Read aloud**.
+5. Select the microphone, grant browser permission, speak a short question and stop.
+6. Confirm that the transcription fills the question field.
+
+For live-provider troubleshooting, an HTTP `402` usually means credits or subscription limits. An HTTP `401` usually means the key or permissions are invalid. A `502` means the configured provider or local model returned an unavailable/failed response.
+
+Never test a provider by placing the API key in a browser URL or `NEXT_PUBLIC_*` variable. If a key has been exposed, revoke or rotate it at the provider immediately.
+
+---
+
 ## Environment variables
 
 ### `api/.env`
@@ -222,6 +555,21 @@ Then open <http://localhost:3000> and use the demo buttons on the sign-in page.
 | `JWT_EXPIRES_IN` | no | Token lifetime, default `7d`. |
 | `CORS_ORIGINS` | no | Comma-separated browser origins. No wildcards. |
 | `TRUST_PROXY` | no | Number of reverse proxies in front of the API. `1` behind Caddy, `0` locally. |
+| `LEGAL_ASSISTANT_ENABLED` | no | `true` or `false`. Defaults to `true`. |
+| `LEGAL_ASSISTANT_MAX_MESSAGE_LENGTH` | no | Maximum submitted question length. Default `3000`. |
+| `LLM_PROVIDER` | no | `ollama` or `huggingface`. Defaults to `huggingface`. |
+| `OLLAMA_BASE_URL` | no | Local Ollama base URL. Default `http://127.0.0.1:11434`. |
+| `OLLAMA_MODEL` | no | Ollama model name. Default `gemma3:4b`. |
+| `STT_PROVIDER` | no | `whisper` or `elevenlabs`. Defaults to `elevenlabs`. |
+| `WHISPER_MODEL` | with Whisper | Absolute path to a Whisper.cpp `.bin` model. |
+| `TTS_PROVIDER` | no | `browser` or `elevenlabs`. Defaults to `elevenlabs`. |
+| `HUGGINGFACE_API_KEY` | hosted chat | Fine-grained Hugging Face Inference Providers token. Server-side only. |
+| `HUGGINGFACE_BASE_URL` | no | Hugging Face OpenAI-compatible router URL. |
+| `GEMMA_MODEL` | hosted chat | Hugging Face Gemma model ID. |
+| `ELEVENLABS_API_KEY` | hosted speech | ElevenLabs API key. Server-side only. |
+| `ELEVENLABS_VOICE_ID` | ElevenLabs TTS | Account voice ID. |
+| `ELEVENLABS_TTS_MODEL` | no | ElevenLabs TTS model ID. Default `eleven_multilingual_v2`. |
+| `ELEVENLABS_STT_MODEL` | no | ElevenLabs transcription model ID. Default `scribe_v2`. |
 
 ### `web/.env.local`
 
@@ -282,6 +630,9 @@ Authenticated requests use `Authorization: Bearer <jwt>`.
 | `GET` | `/api/notifications` | authenticated | List notifications. Supports `page`, `limit`, `unread`. |
 | `PATCH` | `/api/notifications/:id/read` | owner | Mark one notification read. |
 | `PATCH` | `/api/notifications/read-all` | owner | Mark all notifications read. |
+| `POST` | `/api/assistant/chat` | authenticated | Send a legal education question to Ollama or Hugging Face. |
+| `POST` | `/api/assistant/speech-to-text` | authenticated | Transcribe microphone audio with Whisper.cpp or ElevenLabs. |
+| `POST` | `/api/assistant/text-to-speech` | authenticated | Generate ElevenLabs speech; returns `501` when browser TTS is selected. |
 
 ### Case statuses
 
