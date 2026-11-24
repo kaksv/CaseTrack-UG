@@ -54,14 +54,36 @@ export type CaseEventType =
 
 export type EventSource = 'USER_REPORTED' | 'DEMO' | 'OFFICER_UPDATE' | 'SYSTEM';
 
+export type InstitutionLevel =
+  | 'LC_I'
+  | 'LC_II'
+  | 'LC_III';
+
 export interface Institution {
   id: string;
   name: string;
-  level: 'LC_I' | 'LC_II' | 'LC_III';
+  level: InstitutionLevel;
   district: string;
   subcounty: string;
   address: string | null;
+  active?: boolean;
   isDemo: boolean;
+}
+
+export interface AdminInstitution extends Institution {
+  active: boolean;
+}
+
+export interface AdminPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface AdminPaginated<T> {
+  data: T[];
+  meta: AdminPaginationMeta;
 }
 
 export interface CaseSummary {

@@ -9,6 +9,9 @@ import type {
   Institution,
   Paginated,
   User,
+  AdminInstitution,
+  AdminPaginated,
+  InstitutionLevel,
 } from './types';
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
@@ -110,6 +113,22 @@ export interface CaseListParams {
   limit?: number;
 }
 
+export interface AdminInstitutionInput {
+  name: string;
+  level: InstitutionLevel;
+  district: string;
+  subcounty: string;
+  address?: string;
+}
+
+export interface AdminInstitutionListParams {
+  q?: string;
+  district?: string;
+  active?: 'true' | 'false' | 'all';
+  page?: number;
+  limit?: number;
+}
+
 export const api = {
   login(email: string, password: string): Promise<AuthResponse> {
     return request<AuthResponse>('/api/auth/login', {
@@ -141,6 +160,43 @@ export const api = {
   institutions(): Promise<{ data: Institution[] }> {
     return request<{ data: Institution[] }>('/api/institutions');
   },
+
+
+  adminInstitutions(
+    params: AdminInstitutionListParams = {},
+  ): Promise<AdminPaginated<AdminInstitution>> {
+    return request<AdminPaginated<AdminInstitution>>(
+      `/api/admin/institutions${buildQuery({
+        ...params,
+      })}`,
+    );
+  },
+
+  createInstitution(
+    input: AdminInstitutionInput,
+  ): Promise<{ data: AdminInstitution }> {
+    return request<{ data: AdminInstitution }>(
+      '/api/admin/institutions',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
+  updateInstitution(
+    id: string,
+    input: Partial<AdminInstitutionInput>,
+  ): Promise<{ data: AdminInstitution }> {
+    return request<{ data: AdminInstitution }>(
+      `/api/admin/institutions/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
 
   stats(): Promise<{ data: CaseStats }> {
     return request<{ data: CaseStats }>('/api/cases/stats');
