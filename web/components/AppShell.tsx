@@ -20,6 +20,10 @@ import { ROLE_LABELS } from '@/lib/constants';
 import { cn } from '@/lib/cn';
 import { Logo } from './Logo';
 import { Avatar } from './ui/Card';
+import {
+  ROLE_DASHBOARDS,
+  ROLE_WORKSPACES,
+} from '@/lib/permissions';
 
 interface NavItem {
   href: string;
@@ -30,7 +34,13 @@ interface NavItem {
 }
 
 function isActivePath(pathname: string, href: string): boolean {
-  if (href === '/dashboard') return pathname === '/dashboard';
+  if (
+  href === '/dashboard' ||
+  href === '/admin' ||
+  href === '/court-admin'
+) {
+  return pathname === href;
+}
   if (href === '/cases/new') return pathname === '/cases/new';
   if (href === '/cases') return pathname === '/cases' || /^\/cases\/(?!new$).+/.test(pathname);
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -62,20 +72,85 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!user) return null;
 
-  const navItems: NavItem[] = [
-    { href: '/dashboard', label: 'Overview', shortLabel: 'Home', Icon: LayoutDashboard },
+
+const dashboardHref = ROLE_DASHBOARDS[user.role];
+
+const navItems: NavItem[] = [
+  {
+    href: dashboardHref,
+    label: 'Overview',
+    shortLabel: 'Home',
+    Icon: LayoutDashboard,
+  },
+];
+
+if (user.role === 'SYSTEM_ADMIN') {
+  navItems.push(
     {
-      href: '/cases',
-      label: user.role === 'OFFICER' ? 'Assigned cases' : 'My cases',
+      href: '/admin/institutions',
+      label: 'Institutions',
+      shortLabel: 'Courts',
+      Icon: Building2,
+    },
+    {
+      href: '/admin/court-admins',
+      label: 'Court administrators',
+      shortLabel: 'Admins',
+      Icon: ShieldCheck,
+    },
+  );
+} else if (user.role === 'COURT_ADMIN') {
+  navItems.push(
+    {
+      href: '/court-admin/cases',
+      label: 'Case assignments',
       shortLabel: 'Cases',
       Icon: FolderOpen,
     },
-    ...(user.role === 'CITIZEN'
-      ? [{ href: '/cases/new', label: 'Register a case', shortLabel: 'New', Icon: PlusCircle }]
-      : []),
-    { href: '/notifications', label: 'Notifications', shortLabel: 'Alerts', Icon: Bell, badge: unread },
-    { href: '/profile', label: 'Profile', shortLabel: 'Profile', Icon: UserRound },
-  ];
+    {
+      href: '/court-admin/officers',
+      label: 'Court officers',
+      shortLabel: 'Officers',
+      Icon: UserRound,
+    },
+  );
+} else {
+  navItems.push({
+    href: '/cases',
+    label:
+      user.role === 'OFFICER'
+        ? 'Assigned cases'
+        : 'My cases',
+    shortLabel: 'Cases',
+    Icon: FolderOpen,
+  });
+
+  if (user.role === 'CITIZEN') {
+    navItems.push({
+      href: '/cases/new',
+      label: 'Register a case',
+      shortLabel: 'New',
+      Icon: PlusCircle,
+    });
+  }
+}
+
+navItems.push(
+  {
+    href: '/notifications',
+    label: 'Notifications',
+    shortLabel: 'Alerts',
+    Icon: Bell,
+    badge: unread,
+  },
+  {
+    href: '/profile',
+    label: 'Profile',
+    shortLabel: 'Profile',
+    Icon: UserRound,
+  },
+);
+
 
   function handleLogout() {
     logout();
@@ -95,14 +170,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
 
         <div className="relative px-6 pb-6 pt-7">
-          <Logo variant="light" href="/dashboard" />
+          <Logo variant="light" href={dashboardHref} />
         </div>
 
         <div className="relative mx-4 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-gold-400" aria-hidden="true" />
             <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/70">
-              {user.role === 'OFFICER' ? 'Officer workspace' : 'Citizen workspace'}
+              {ROLE_WORKSPACES[user.role]}
             </span>
             {user.isDemo && (
               <span className="ml-auto rounded border border-dashed border-gold-500/50 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.12em] text-gold-400">
@@ -111,9 +186,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             )}
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-white/45">
-            {user.role === 'OFFICER'
-              ? user.institution?.name ?? 'Assigned LC court cases'
-              : 'Your Local Council case file'}
+            {user.role === 'SYSTEM_ADMIN'
+              ? 'Platform and institution management'
+              : user.role === 'COURT_ADMIN'
+                ? user.institution?.name ?? 'Court administration'
+                : user.role === 'OFFICER'
+                  ? user.institution?.name ?? 'Assigned LC court cases'
+                  : 'Your Local Council case file'}
           </p>
         </div>
 
@@ -154,7 +233,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
 
-          {user.role === 'OFFICER' && user.institution && (
+          {(user.role === 'OFFICER' ||
+            user.role === 'COURT_ADMIN') &&
+            user.institution && (
             <div className="mt-6 rounded-xl border border-white/10 px-3 py-2.5">
               <p className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">
                 <Building2 className="h-3 w-3" aria-hidden="true" />
@@ -202,7 +283,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <header className="sticky top-0 z-30 border-b border-ink-100 bg-cream/90 backdrop-blur-md md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
-          <Logo size="sm" href="/dashboard" />
+          <Logo size="sm" href={dashboardHref} />
           <div className="flex items-center gap-1">
             <Link
               href="/notifications"

@@ -1,4 +1,13 @@
-export type Role = 'CITIZEN' | 'OFFICER';
+export type Role =
+  | 'CITIZEN'
+  | 'OFFICER'
+  | 'COURT_ADMIN'
+  | 'SYSTEM_ADMIN';
+
+export type AccountStatus =
+  | 'ACTIVE'
+  | 'PENDING_ACTIVATION'
+  | 'SUSPENDED';
 
 export interface User {
   id: string;
@@ -6,6 +15,7 @@ export interface User {
   email: string;
   phone: string | null;
   role: Role;
+  accountStatus?: AccountStatus;
   isDemo: boolean;
   institution: { id: string; name: string; district: string } | null;
   createdAt: string;

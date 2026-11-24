@@ -1,5 +1,5 @@
-import { STATUS_META } from '@/lib/constants';
-import type { CaseStatus } from '@/lib/types';
+import { STATUS_META, ROLE_LABELS } from '@/lib/constants';
+import type { CaseStatus, Role } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 export function StatusBadge({
@@ -40,17 +40,23 @@ export function DemoBadge({ className }: { className?: string }) {
   );
 }
 
-export function RoleBadge({ role }: { role: 'CITIZEN' | 'OFFICER' }) {
+
+export function RoleBadge({ role }: { role: Role }) {
+  const styles: Record<Role, string> = {
+    CITIZEN: 'bg-ink-100 text-ink-700 ring-ink-200',
+    OFFICER: 'bg-ink-900 text-cream ring-ink-900',
+    COURT_ADMIN: 'bg-gold-50 text-gold-800 ring-gold-300',
+    SYSTEM_ADMIN: 'bg-violet-50 text-violet-700 ring-violet-200',
+  };
+
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset',
-        role === 'OFFICER'
-          ? 'bg-ink-900 text-cream ring-ink-900'
-          : 'bg-ink-100 text-ink-700 ring-ink-200'
+        styles[role],
       )}
     >
-      {role === 'OFFICER' ? 'Court officer' : 'Citizen'}
+      {ROLE_LABELS[role]}
     </span>
   );
 }

@@ -1,4 +1,4 @@
-import type { CaseCategory, CaseEventType, CaseStatus, EventSource, Role } from './types';
+import type { CaseCategory, CaseEventType, CaseStatus, EventSource } from './types';
 
 export const STATUS_META: Record<
   CaseStatus,
@@ -82,10 +82,7 @@ export const SOURCE_LABELS: Record<EventSource, string> = {
   SYSTEM: 'System',
 };
 
-export const ROLE_LABELS: Record<Role, string> = {
-  CITIZEN: 'Citizen',
-  OFFICER: 'Court officer',
-};
+export { ROLE_LABELS } from './permissions';
 
 /**
  * Status options shown to officers in the status form. HEARING_SCHEDULED is

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { resolvePostLoginPath } from '@/lib/permissions';
 import {
   ArrowRight,
   Eye,
@@ -71,7 +72,11 @@ function LoginContent() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user) router.replace(nextPath);
+    if (!loading && user) {
+  router.replace(
+    resolvePostLoginPath(user.role, nextPath),
+  );
+}
   }, [loading, user, router, nextPath]);
 
   function fillDemo(role: keyof typeof DEMO_ACCOUNTS) {
@@ -88,8 +93,17 @@ function LoginContent() {
     setError(null);
     setNotice(null);
     try {
-      await login(email.trim(), password);
-      router.replace(nextPath);
+      const authenticatedUser = await login(
+        email.trim(),
+        password,
+      );
+
+      router.replace(
+        resolvePostLoginPath(
+          authenticatedUser.role,
+          nextPath,
+        ),
+      );
     } catch (err) {
       setError(errorMessage(err));
     } finally {
