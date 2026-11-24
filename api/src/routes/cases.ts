@@ -1,3 +1,4 @@
+import { User } from '../models/User';
 import { Router } from 'express';
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
@@ -7,6 +8,10 @@ import { CaseEvent } from '../models/CaseEvent';
 import { CaseAccess } from '../models/CaseAccess';
 import { Institution } from '../models/Institution';
 import { Notification } from '../models/Notification';
+import {
+  assertInstitutionAccess,
+  requireOfficerInstitution,
+} from '../lib/authorization';
 import {
   ALLOWED_TRANSITIONS,
   CASE_CATEGORIES,
@@ -49,23 +54,45 @@ function citizenIdOf(value: unknown): string | null {
   return String(value);
 }
 
+
 async function assertViewAccess(
-  caseDoc: { _id: unknown; citizen?: unknown },
+  caseDoc: {
+    _id: unknown;
+    citizen?: unknown;
+    institution?: unknown;
+  },
   user: AuthUser
 ): Promise<void> {
   if (user.role === 'CITIZEN') {
     const citizenId = citizenIdOf(caseDoc.citizen);
 
     if (!citizenId || citizenId !== user.id) {
-      throw forbidden('You are not authorized to access this case');
+      throw forbidden(
+        'You are not authorized to access this case'
+      );
     }
 
     return;
   }
 
   if (user.role !== 'OFFICER') {
-    throw forbidden('You are not authorized to access this case');
+    throw forbidden(
+      'You are not authorized to access this case'
+    );
   }
+
+  const institutionId = citizenIdOf(caseDoc.institution);
+
+  if (
+    !institutionId ||
+    !Types.ObjectId.isValid(institutionId)
+  ) {
+    throw forbidden(
+      'This case has no valid court assignment'
+    );
+  }
+
+  await assertInstitutionAccess(user, institutionId);
 
   const access = await CaseAccess.exists({
     case: caseDoc._id,
@@ -78,14 +105,34 @@ async function assertViewAccess(
 }
 
 
-
-async function scopeFilter(user: AuthUser): Promise<FilterQuery<ICase>> {
+async function scopeFilter(
+  user: AuthUser
+): Promise<FilterQuery<ICase>> {
   if (user.role === 'CITIZEN') {
-    return { citizen: new Types.ObjectId(user.id) };
+    return {
+      citizen: new Types.ObjectId(user.id),
+    };
   }
-  const assigned = await CaseAccess.find({ user: user.id }).distinct('case');
-  return { _id: { $in: assigned } };
+
+  if (user.role !== 'OFFICER') {
+    throw forbidden(
+      'You are not authorized to access cases'
+    );
+  }
+
+  const institutionId =
+    await requireOfficerInstitution(user);
+
+  const assigned = await CaseAccess.find({
+    user: user.id,
+  }).distinct('case');
+
+  return {
+    institution: new Types.ObjectId(institutionId),
+    _id: { $in: assigned },
+  };
 }
+
 
 function addSearch(filter: FilterQuery<ICase>, q: string | undefined): void {
   if (!q) return;
@@ -267,7 +314,21 @@ casesRouter.post(
     }
 
     const now = new Date();
-    const assignedOfficer = institution.dutyOfficer ?? null;
+
+    const eligibleDutyOfficer = institution.dutyOfficer
+      ? await User.findOne({
+        _id: institution.dutyOfficer,
+        role: 'OFFICER',
+        institution: institution._id,
+        isDemo: institution.isDemo,
+      })
+        .select('_id')
+        .lean()
+      : null;
+
+    const assignedOfficer =
+      eligibleDutyOfficer?._id ?? null;
+
 
     const created = await Case.create({
       trackingId,
@@ -346,7 +407,9 @@ casesRouter.get(
   '/:id/events',
   validate({ params: caseIdParams }),
   asyncHandler(async (req, res) => {
-    const caseDoc = await Case.findById(req.params.id).select('citizen').lean();
+    const caseDoc = await Case.findById(req.params.id)
+      .select('citizen institution')
+      .lean();
     if (!caseDoc) throw notFound('Case not found');
     await assertViewAccess(caseDoc, req.authUser!);
 
